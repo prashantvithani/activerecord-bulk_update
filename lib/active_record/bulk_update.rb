@@ -1,7 +1,34 @@
-require 'activerecord/bulk_update/version'
+require 'active_record'
+require 'active_record/version'
 
-module Activerecord
-  module BulkUpdate
-    # Your code goes here...
+module ActiveRecord
+  module BulkUpdate # :nodoc:
+    ADAPTER_PATH = 'active_record/active_record/adapters'.freeze
+
+    def self.base_adapter(adapter)
+      case adapter
+      when 'mysql2_makara' then 'mysql2'
+      when 'mysql2spatial' then 'mysql2'
+      when 'spatialite' then 'sqlite3'
+      when 'postgresql_makara' then 'postgresql'
+      when 'postgis' then 'postgresql'
+      else adapter
+      end
+    end
+
+    # Loads the import functionality for a specific database adapter
+    def self.require_adapter(adapter)
+      require File.join(ADAPTER_PATH, "/#{base_adapter(adapter)}_adapter")
+    rescue LoadError
+      # fallback
+    end
+
+    # Loads the import functionality for the passed in ActiveRecord connection
+    def self.load_from_connection_pool(connection_pool)
+      require_adapter connection_pool.spec.config[:adapter]
+    end
   end
 end
+
+require 'active_record/bulk_update/base'
+require 'active_record/adapters/abstract_adapter'
